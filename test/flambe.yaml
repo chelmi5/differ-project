@@ -24,7 +24,7 @@ orientation: portrait
 fullscreen: true
 
 # Additional flags to pass to the Haxe compiler.
-# haxe_flags: -lib nape -D foobar
+haxe_flags: -lib differ
 
 # Additional paths to include in the build.
 # extra_paths:
