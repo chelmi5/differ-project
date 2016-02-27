@@ -17,6 +17,7 @@ import differ.Collision;
 import differ.ShapeDrawer;
 
 import urgame.SDrawer;
+import urgame.DifferSprite;
 
 class Main
 {
@@ -54,8 +55,6 @@ class Main
 
         var collideInfo = Collision.shapeWithShape( circle, box );
 
-        var testDrawer = new SDrawer();
-
         if(collideInfo != null) {
             //use collideInfo.separationX
             //    collideInfo.separationY
@@ -65,7 +64,14 @@ class Main
             trace("something is working???");
         }
 
+        shapes = [];
+        //shapes.push(circle);
+        shapes.push(box);
 
+        var difSprite = new DifferSprite(0x03A3B3, 500, 5);
+        difSprite.shapes = shapes;
+
+        System.root.addChild(new Entity().add(difSprite));
 
     }
 }
