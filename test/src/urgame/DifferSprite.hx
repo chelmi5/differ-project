@@ -25,6 +25,7 @@ class DifferSprite extends FillSprite
 
 		for (shape in shapes)
 		{
+			trace("drawShape");
 			drawer.drawShape(shape);
 		}
 		

@@ -51,7 +51,13 @@ class Main
         var circle = new Circle( 300, 200, 50 );
         var box = Polygon.rectangle( 0, 0, 50, 150 );
 
-        box.rotation = 45;
+        //box.rotation = 45;
+        circle.x = 150;
+        circle.y = 150;
+
+
+        box.x = 150;
+        box.y = 150;
 
         var collideInfo = Collision.shapeWithShape( circle, box );
 
@@ -61,14 +67,14 @@ class Main
             //    collideInfo.normalAxisX
             //    collideInfo.normalAxisY
             //    collideInfo.overlap
-            trace("something is working???");
+            //trace("colliding");
         }
 
         shapes = [];
-        //shapes.push(circle);
+        shapes.push(circle);
         shapes.push(box);
 
-        var difSprite = new DifferSprite(0x03A3B3, 500, 5);
+        var difSprite = new DifferSprite(0x03A3B3, 50, 150);
         difSprite.shapes = shapes;
 
         System.root.addChild(new Entity().add(difSprite));

@@ -17,14 +17,21 @@ class SDrawer extends ShapeDrawer
 	}
 
 	//need to override drawline
-	 override public function drawLine( p0x:Vector, p0y:Vector, ?startPoint:Bool = true )
+	override public function drawLine( p0:Vector, p1:Vector, ?startPoint:Bool = true )
 	 {
+	 	trace("drawline");
 
-	 	//g.fillRect(0x03A3B3, p0x.x, p0y.y, 1, 1);
+	 	var point01 = new FillSprite(0x03A3B3, 1, 1);
+	 	point01.x._ = p0.x;
+	 	point01.y._ = p0.y;
+        System.root.addChild(new Entity().add(point01));
 
+        var point02 = new FillSprite(0x03A3B3, 1, 1);
+	 	point02.x._ = p1.x;
+	 	point02.y._ = p1.y;
+        System.root.addChild(new Entity().add(point02));
 
-	 	var test = new FillSprite(0x03A3B3, 50, 50);
-        System.root.addChild(new Entity().add(test));
+	 	//g.fillRect(0x03A3B3, p0.x, p0.y, 1, 1);
 
 	 	//var line:Sprite = new FillSprite(0x03A3B3, 10, 3);
 	 	/*
