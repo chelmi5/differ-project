@@ -1,11 +1,13 @@
 package urgame;
 
-import flambe.Entity;
 import flambe.System;
 import flambe.display.FillSprite;
 import flambe.display.Graphics;
+import flambe.display.Sprite;
 import differ.math.Vector;
 import differ.ShapeDrawer;
+
+import urgame.Line;
 
 class SDrawer extends ShapeDrawer
 {
@@ -16,11 +18,11 @@ class SDrawer extends ShapeDrawer
 		this.g = g;
 	}
 
-	//need to override drawline
 	override public function drawLine( p0:Vector, p1:Vector, ?startPoint:Bool = true )
 	 {
-	 	trace("drawline");
+	 	/* Next up: drawing actual lines rather than points. How to angle..? */
 
+	 	/*
 	 	var point01 = new FillSprite(0x03A3B3, 1, 1);
 	 	point01.x._ = p0.x;
 	 	point01.y._ = p0.y;
@@ -30,16 +32,11 @@ class SDrawer extends ShapeDrawer
 	 	point02.x._ = p1.x;
 	 	point02.y._ = p1.y;
         System.root.addChild(new Entity().add(point02));
-
-	 	//g.fillRect(0x03A3B3, p0.x, p0.y, 1, 1);
-
-	 	//var line:Sprite = new FillSprite(0x03A3B3, 10, 3);
-	 	/*
-	 	g.save()
-		g.rotate(radians);
-		g.translate(x, y);
-		g.fillRect(color, 0, 0, width._, height._);
-		g.restore()
 		*/
+
+        var testLine = new Line(p0, p1, 1);
+        System.root.addChild(testLine.addToEntity());
+
+
 	 }
 }

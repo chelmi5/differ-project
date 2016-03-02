@@ -12,7 +12,6 @@ import urgame.SDrawer;
 class DifferSprite extends FillSprite
 {
 	public var shapes: Array<Shape>;
-	//public var shape: Shape;
 	public var drawer: SDrawer;
 
 	override public function draw(g :Graphics)
@@ -25,7 +24,6 @@ class DifferSprite extends FillSprite
 
 		for (shape in shapes)
 		{
-			trace("drawShape");
 			drawer.drawShape(shape);
 		}
 		

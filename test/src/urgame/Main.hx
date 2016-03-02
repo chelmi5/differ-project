@@ -1,32 +1,25 @@
 package urgame;
 
+import flambe.System;
 import flambe.Entity;
 import flambe.Component;
-import flambe.System;
+import flambe.scene.Director;
 import flambe.asset.AssetPack;
 import flambe.asset.Manifest;
-import flambe.display.Sprite;
 import flambe.display.FillSprite;
-import flambe.display.ImageSprite;
-import flambe.display.Graphics;
-
-import differ.shapes.Circle;
-import differ.shapes.Polygon;
-import differ.shapes.Shape;
-import differ.Collision;
-import differ.ShapeDrawer;
-
-import urgame.SDrawer;
-import urgame.DifferSprite;
 
 class Main
 {
-    public static var shapes: Array<Shape>;
+    
+    public static var director: Director;
 
     private static function main ()
     {
         // Wind up all platform-specific stuff
         System.init();
+
+        director = new Director();
+        System.root.add(director);
 
         // Load up the compiled pack in the assets directory named "bootstrap"
         var manifest = Manifest.fromAssets("bootstrap");
@@ -40,44 +33,7 @@ class Main
         var background = new FillSprite(0x202020, System.stage.width, System.stage.height);
         System.root.addChild(new Entity().add(background));
 
-        /*
-        // Add a plane that moves along the screen
-        var plane = new ImageSprite(pack.getTexture("plane"));
-        plane.x._ = 30;
-        plane.y.animateTo(200, 6);
-        System.root.addChild(new Entity().add(plane));
-        */
-
-        var circle = new Circle( 300, 200, 50 );
-        var box = Polygon.rectangle( 0, 0, 50, 150 );
-
-        //box.rotation = 45;
-        circle.x = 150;
-        circle.y = 150;
-
-
-        box.x = 150;
-        box.y = 150;
-
-        var collideInfo = Collision.shapeWithShape( circle, box );
-
-        if(collideInfo != null) {
-            //use collideInfo.separationX
-            //    collideInfo.separationY
-            //    collideInfo.normalAxisX
-            //    collideInfo.normalAxisY
-            //    collideInfo.overlap
-            //trace("colliding");
-        }
-
-        shapes = [];
-        shapes.push(circle);
-        shapes.push(box);
-
-        var difSprite = new DifferSprite(0x03A3B3, 50, 150);
-        difSprite.shapes = shapes;
-
-        System.root.addChild(new Entity().add(difSprite));
-
+        var mainScene = MainScene.create();
+        director.unwindToScene(mainScene);
     }
 }
