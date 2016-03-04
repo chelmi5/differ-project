@@ -7,12 +7,14 @@ import flambe.display.Graphics;
 import differ.ShapeDrawer;
 import differ.shapes.Shape;
 
+import urgame.ShapeDrawerFlambe;
+
 class DifferSprite extends Sprite
 {
-	private var shapes: Array<Shape>;
-	//private var drawer: SDrawer;
+	private var shapes : Array<Shape>;
+	private var drawer : ShapeDrawerFlambe;
 
-	public function new ()
+	public function new()
 	{
 		super();
 		shapes = [];
@@ -30,7 +32,7 @@ class DifferSprite extends Sprite
 		{
 			trace("did not successfully remove shape");
 		}
-		
+
 		return this;
 	}
 
@@ -40,25 +42,23 @@ class DifferSprite extends Sprite
 		return this;
 	}
 
-	override public function draw (g : Graphics)
+	override public function draw(g : Graphics)
 	{
-		g.rotate(20);
-		g.fillRect(0xFF0000, System.stage.width/2, System.stage.height/2, 200, 10);
+		// g.rotate(20);
+		// g.fillRect(0xFF0000, System.stage.width/2, System.stage.height/2, 200, 10);
 
-		g.rotate(10);
-		g.fillRect(0xFF0000, System.stage.width/2, System.stage.height/2, 200, 10);
+		// g.rotate(10);
+		// g.fillRect(0xFF0000, System.stage.width/2, System.stage.height/2, 200, 10);
 
-		/*
-			if(SD == null)
-			{
-				SD = new ShapeDrawer(g);
-			}
+		if(drawer == null)
+		{
+			drawer = new ShapeDrawerFlambe(g);
+		}
 
-			for(shape in shapes)
-			{
-				SD.drawShape(shape);
-			}
-		*/
+		for(shape in shapes)
+		{
+			drawer.drawShape(shape);
+		}
 
 	}
 }
