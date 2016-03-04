@@ -28,8 +28,8 @@ class Main
     private static function onSuccess (pack :AssetPack)
     {
         // Add a solid color background
-        //var background = new FillSprite(0x202020, System.stage.width, System.stage.height);
-       // System.root.addChild(new Entity().add(background));
+        var background = new FillSprite(0x202020, System.stage.width, System.stage.height);
+        System.root.addChild(new Entity().add(background));
 
        	var circle = new Circle( 300, 200, 50 );
        	var box = Polygon.rectangle( 200, 200, 50, 150 );

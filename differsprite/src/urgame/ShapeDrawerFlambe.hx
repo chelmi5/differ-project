@@ -6,6 +6,7 @@ import differ.ShapeDrawer;
 import differ.math.Vector;
 
 import flambe.display.Graphics;
+import flambe.math.FMath;
 
 class ShapeDrawerFlambe extends ShapeDrawer
 {
@@ -19,12 +20,14 @@ class ShapeDrawerFlambe extends ShapeDrawer
 
 	override public function drawLine(p0:Vector, p1:Vector, ?startPoint:Bool) : Void
 	{
-		/*
-		 g.rotate. g.fillRect, etc...
-		*/
-		//g.rotate(0);
-		g.fillRect(0xFF0000, p0.x, p0.y, 1, getDistance(p0, p1));
-		//g.rotate(getAngle(p0, p1));
+		g.save();
+
+		var angle = getAngle(p0, p1);
+
+		g.translate(p0.x, p0.y);
+		g.rotate(getAngle(p0,p1));
+		g.fillRect(0xFF0000, 0, 0, 1, getDistance(p0, p1));
+		g.restore();
 	}
 
 	 /* A^2 + B^2 = C^2 essentially. Returns the distance/length between two vectors */
@@ -50,7 +53,7 @@ class ShapeDrawerFlambe extends ShapeDrawer
 		var x:Float = p0.x - p1.x;
 		var y:Float = p0.y - p1.y;
 		var angle:Float = Math.atan2(y, x); //returns the arctangent of the quotient of its arguments in radians
-		angle = angle*(180 / Math.PI); //Convert radians to degrees
+		angle = FMath.toDegrees(angle) + 90; //To degrees + adjustment
 		return angle;
 	}
 }

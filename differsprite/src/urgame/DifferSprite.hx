@@ -44,12 +44,6 @@ class DifferSprite extends Sprite
 
 	override public function draw(g : Graphics)
 	{
-		// g.rotate(20);
-		// g.fillRect(0xFF0000, System.stage.width/2, System.stage.height/2, 200, 10);
-
-		// g.rotate(10);
-		// g.fillRect(0xFF0000, System.stage.width/2, System.stage.height/2, 200, 10);
-
 		if(drawer == null)
 		{
 			drawer = new ShapeDrawerFlambe(g);
