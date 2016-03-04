@@ -1,60 +1,51 @@
 package urgame;
 
 import flambe.Entity;
+import flambe.display.FillSprite;
 
 import differ.shapes.Circle;
+import differ.shapes.Ray;
 import differ.shapes.Polygon;
 import differ.shapes.Shape;
 import differ.Collision;
 import differ.ShapeDrawer;
 
 import urgame.SDrawer;
-import urgame.DifferSprite;
+import urgame.LevelModel;
 
 class MainScene
 {
 	public static var shapes: Array<Shape>;
+	public static var player: Shape;
+	public static var drawer: SDrawer;
 
 	public static function create() :Entity
 	{
 		var scene = new Entity();
 
-		var circle = new Circle( 300, 200, 50 );
-        var box = Polygon.rectangle( 200, 200, 50, 150 );
-        var poly = Polygon.triangle(100, 100, 30 );
-
-        var collideInfo = Collision.shapeWithShape( circle, box );
-
-        if(collideInfo != null) {
-            trace("collision between circle and box");
-        }
-        else {
-            trace("no collision between circle and box");
-        }
-
-        var collideInfo1 = Collision.shapeWithShape( poly, box );
-
-        if(collideInfo1 != null) {
-            //use collideInfo.separationX, collideInfo.separationY
-            //    collideInfo.normalAxisX, collideInfo.normalAxisY
-            //    collideInfo.overlap
-            trace("collision between triangle and box");
-        }
-        else {
-            trace("no collision between triangle and box");
-        }
-
-        shapes = [];
-        shapes.push(circle);
-        shapes.push(box);
-        shapes.push(poly);
-
-        var difSprite = new DifferSprite(0x03A3B3, 50, 150);
-        difSprite.shapes = shapes;
-
-        scene.addChild(new Entity().add(difSprite));
+		var level = new LevelModel();
+		scene.add(level);
 
         return scene;
+	}
+
+	//not in use, only tests collisions once since it's not in a game loop
+	public static function testCollisions(player:Shape, shapes:Array<Shape>)
+	{
+		for (shape in shapes)
+		{
+			var collideInfo = Collision.shapeWithShape(player, shape);
+
+			if(collideInfo != null)
+			{
+				trace("collision detected between player and shape");
+				//use collideInfo.separationX, collideInfo.separationY
+				//    collideInfo.normalAxisX, collideInfo.normalAxisY
+				//    collideInfo.overlap
+
+			}
+		}
+		
 	}
 	
 }

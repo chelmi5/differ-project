@@ -1,12 +1,13 @@
 package urgame;
 
-import differ.math.Vector;
-
 import flambe.Entity;
 import flambe.Component;
+import flambe.display.Graphics;
 import flambe.display.FillSprite;
 
-class Line extends Component
+import differ.math.Vector;
+
+class TestLineSprite extends FillSprite
 {
 	public var line : FillSprite;
 	public var distance : Float;
@@ -16,16 +17,28 @@ class Line extends Component
 	private var vEnd : Vector;
 	private var thickness : Float;
 
+	public function new (color :Int, width :Float, height :Float)
+	{
+		super(color, width, 1);
+		this.rotation._ = height;
+		this.vStart = new Vector(0,0);
+		this.vEnd = new Vector(0,0);
+	}
+
+	/*
+
 	public function new(p0:Vector, p1:Vector, thick:Float)
 	{
+		trace("created new");
 		this.vStart = p0;
 		this.vEnd = p1;
 		this.thickness = thick;
 
 		this.distance = getDistance();
 		this.line = new FillSprite(0xFFFFFF, this.distance, thickness);
-		this.line.setAnchor(0, this.line.height._/2); //not totally necessary
+		this.line.setAnchor(0, this.line.height._/2);
 	}
+	*/
 
 	/* A^2 + B^2 = C^2 essentially. */
 	public function getDistance():Float
@@ -65,19 +78,33 @@ class Line extends Component
 		this.vEnd = newPos1;		
 		updateLine();
 	}
+
+	public function newUpdate(p0:Vector, p1:Vector, thick:Float)
+	{
+		//trace("reused");
+		this.vStart = p0;
+		this.vEnd = p1;
+		this.thickness = thick;
+
+		this.distance = getDistance();
+		this.line = new FillSprite(0xFFFFFF, this.distance, thickness);
+		this.line.setAnchor(0, this.line.height._/2);
+
+		this.updateLine();
+	}
 	
 	private function updateLine()
 	{
-		this.line.x._ = this.vStart.x;
-		this.line.y._ = this.vStart.y;
+		this.x._ = this.vStart.x;
+		this.y._ = this.vStart.y;
 		this.distance = getDistance();
-		this.line.rotation._ = getAngle();
-		this.line.width._ = this.distance;
+		this.rotation._ = getAngle();
+		this.width._ = this.distance;
 	}
 	
 	override public function onAdded():Void
     {
-		this.owner.addChild(new Entity().add(this.line));
+		//this.owner.addChild(new Entity().add(this));
 		
 		this.updateLine();
 	}
