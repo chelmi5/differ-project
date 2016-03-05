@@ -1,4 +1,4 @@
-package urgame;
+package shmup.differobjects;
 
 import flambe.System;
 import flambe.display.Sprite;
@@ -7,7 +7,7 @@ import flambe.display.Graphics;
 import differ.ShapeDrawer;
 import differ.shapes.Shape;
 
-import urgame.ShapeDrawerFlambe;
+import shmup.differobjects.ShapeDrawerFlambe;
 
 class DifferSprite extends Sprite
 {

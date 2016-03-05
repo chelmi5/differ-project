@@ -1,4 +1,4 @@
-package urgame;
+package shmup.differobjects;
 
 import flambe.System;
 

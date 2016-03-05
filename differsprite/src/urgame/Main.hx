@@ -37,9 +37,9 @@ class Main
 
         var testSprite = new DifferSprite();
 
-        testSprite.addShape(circle);
-        testSprite.addShape(box);
-        testSprite.addShape(triangle);
+        testSprite.addShape(circle, 0x03A3B3);
+        testSprite.addShape(box, 0xFF0000);
+        testSprite.addShape(triangle, 0xFFFFFF);
         
         System.root.addChild(new Entity().add(testSprite));
     }
