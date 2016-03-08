@@ -36,11 +36,12 @@ class JellyLevelModel extends Component
 {
 	public static inline var PLAYER_SPEED = 700;
     public static inline var ENEMY_SPEED = 500;
-    //public static inline var COIN_SPEED = 700; randomized
 
 	public var player (default, null) :Entity;
 
 	public var score (default, null) :Value<Int>;
+
+    public var bGameOver :Bool;
 
 	private var _ctx :GameContext;
 
@@ -67,6 +68,8 @@ class JellyLevelModel extends Component
         playerDSprite = new DifferSprite();
         enemyDSprite = new DifferSprite();
         coinDSprite = new DifferSprite();
+
+        bGameOver = false;
 	}
 
 	override public function onAdded ()
@@ -128,7 +131,6 @@ class JellyLevelModel extends Component
 
         player = new Entity().add(jelly);
         _characterLayer.addChild(player);
-        //_friendlies = [player];
 
         // Start the player near the bottom of the screen
         player.get(Sprite).setXY(System.stage.width/2, 0.8*System.stage.height);
@@ -186,7 +188,6 @@ class JellyLevelModel extends Component
                     enemyCircle = new Circle(x *System.stage.width, -30, 30);
                 }
 
-                //enemy.differShape = enemyCircle;
                 enemyDSprite.addShape(enemyCircle, 0x00FF00);
 
                 var sprite = enemy.get(Sprite);
@@ -253,7 +254,6 @@ class JellyLevelModel extends Component
                     points = 10;
 
                     coinCircle = new Circle(left ? System.stage.width : 0, y*System.stage.height, 16);
-                    //coinCircle.add(new MoveStraight(_ctx, left ? -speed : speed, 0));
                 
 
                 var sprite = coin.get(Sprite);
@@ -266,7 +266,6 @@ class JellyLevelModel extends Component
 
                 coinDSprite.addShape(coinCircle, 0xFFFF00);
 
-                //System.root.addChild(new Entity().add(coin.differShape));
             }),
         ])));
 
@@ -280,11 +279,9 @@ class JellyLevelModel extends Component
         var pointerX = System.pointer.x;
         var pointerY = System.pointer.y;
 
-        
-
         // Move towards the pointer position at a fixed speed
         var sprite = player.get(Sprite);
-        if (sprite != null) {
+        if (sprite != null && bGameOver == false) {
             var dx = pointerX - sprite.x._;
             var dy = pointerY - sprite.y._;
             var distance = Math.sqrt(dx*dx + dy*dy);
@@ -355,32 +352,64 @@ class JellyLevelModel extends Component
 
     public function testDifferCollision():Void
     {
-        var coinCollisions = Collision.shapeWithShapes(playerDSprite.shapes[0], coinDSprite.shapes);
+        var i = 0;
 
-        if(coinCollisions != null)
+        while(i < coinDSprite.shapes.length)
         {
-            var i = 0;
-            while(i < coinCollisions.length)
-            {
-                trace("Differ: collision detected between player and coin ");
-                trace("overlap: " + coinCollisions[i].overlap);
+            var differCoinCollision = Collision.shapeWithShape(playerDSprite.shapes[0], coinDSprite.shapes[i]);
 
-                i++;
+            if(differCoinCollision != null)
+            {
+                //trace("Differ: collision detected between player and coin ");
+                //trace("overlap: " + differCoinCollision.overlap);
+
+                var a = _friendlies[i];
+
+                score._ += Std.int(a.get(GameObject).points);
+                _ctx.pack.getSound("sounds/Coin").play();
+
+                _friendlies.splice(i, 1);
+                a.dispose();
+
+                coinDSprite.removeShape(coinDSprite.shapes[i]);
             }
+
+            i++;
         }
 
-        var enemyCollisions = Collision.shapeWithShapes(playerDSprite.shapes[0], enemyDSprite.shapes);
-        if(enemyCollisions != null)
+        var j = 0;
+
+        while(j < enemyDSprite.shapes.length)
         {
-            var i = 0;
-            while(i < enemyCollisions.length)
+            var differEnemyCollision = Collision.shapeWithShape(playerDSprite.shapes[0], enemyDSprite.shapes[j]);
+
+            if(differEnemyCollision != null)
             {
+                //trace("Differ: collision detected between player and coin ");
+                //trace("overlap: " + differEnemyCollision.overlap);
 
-                trace("Differ: collision detected between player and enemy ");
-                trace("overlap: " + enemyCollisions[i].overlap);
+                var a = _enemies[j];
+                var aS = _enemies[j].get(Sprite);
 
-                i++;
+                player.get(Sprite).scaleX.animate(0.25, 1, 0.5, Ease.backOut);
+                player.get(Sprite).scaleY.animate(0.25, 1, 0.5, Ease.backOut);
+
+                aS.alpha._ = 0;
+                _enemies.splice(j, 1);
+                enemyDSprite.removeShape(enemyDSprite.shapes[j]);
+
+                if(player.get(GameObject).damage(1))
+                {
+                    bGameOver = true;
+                    player.get(GameObject).destroyed.emit();
+                    break;
+                }
+
+                a.dispose();
+                
             }
+
+            j++;
         }
     }
 

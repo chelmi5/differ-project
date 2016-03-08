@@ -164,17 +164,6 @@ differ_Collision.__name__ = true;
 differ_Collision.shapeWithShape = function(shape1,shape2) {
 	return shape1.test(shape2);
 };
-differ_Collision.shapeWithShapes = function(shape1,shapes) {
-	var results = [];
-	var _g = 0;
-	while(_g < shapes.length) {
-		var other_shape = shapes[_g];
-		++_g;
-		var result = differ_Collision.shapeWithShape(shape1,other_shape);
-		if(result != null) results.push(result);
-	}
-	return results;
-};
 var differ_ShapeDrawer = function() {
 };
 $hxClasses["differ.ShapeDrawer"] = differ_ShapeDrawer;
@@ -7148,6 +7137,17 @@ shmup_GameObject.prototype = $extend(flambe_Component.prototype,{
 		sprite.texture = normal;
 		sprite.centerAnchor();
 	}
+	,damage: function(amount) {
+		this._ctx.pack.getSound("sounds/Hurt").play();
+		if(amount >= this.health) {
+			this.points = 0;
+			this.health = 0;
+			return true;
+		} else {
+			this.health -= amount;
+			return false;
+		}
+	}
 	,__class__: shmup_GameObject
 });
 var shmup_HomeScene = function() { };
@@ -7190,6 +7190,7 @@ var shmup_JellyLevelModel = function(ctx) {
 	this.playerDSprite = new shmup_differobjects_DifferSprite();
 	this.enemyDSprite = new shmup_differobjects_DifferSprite();
 	this.coinDSprite = new shmup_differobjects_DifferSprite();
+	this.bGameOver = false;
 };
 $hxClasses["shmup.JellyLevelModel"] = shmup_JellyLevelModel;
 shmup_JellyLevelModel.__name__ = true;
@@ -7344,7 +7345,7 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 		var sprite;
 		var component = this.player.getComponent("Sprite_0");
 		sprite = component;
-		if(sprite != null) {
+		if(sprite != null && this.bGameOver == false) {
 			var dx = pointerX - sprite.x.get__();
 			var dy = pointerY - sprite.y.get__();
 			var distance = Math.sqrt(dx * dx + dy * dy);
@@ -7406,23 +7407,66 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 		}
 	}
 	,testDifferCollision: function() {
-		var coinCollisions = differ_Collision.shapeWithShapes(this.playerDSprite.shapes[0],this.coinDSprite.shapes);
-		if(coinCollisions != null) {
-			var i = 0;
-			while(i < coinCollisions.length) {
-				console.log("Differ: collision detected between player and coin ");
-				console.log("overlap: " + coinCollisions[i].overlap);
-				i++;
+		var i = 0;
+		while(i < this.coinDSprite.shapes.length) {
+			var differCoinCollision = differ_Collision.shapeWithShape(this.playerDSprite.shapes[0],this.coinDSprite.shapes[i]);
+			if(differCoinCollision != null) {
+				var a = this._friendlies[i];
+				var _g = this.score;
+				_g.set__(_g.get__() + Std["int"](((function($this) {
+					var $r;
+					var component = a.getComponent("GameObject_8");
+					$r = component;
+					return $r;
+				}(this))).points));
+				this._ctx.pack.getSound("sounds/Coin").play();
+				this._friendlies.splice(i,1);
+				a.dispose();
+				this.coinDSprite.removeShape(this.coinDSprite.shapes[i]);
 			}
+			i++;
 		}
-		var enemyCollisions = differ_Collision.shapeWithShapes(this.playerDSprite.shapes[0],this.enemyDSprite.shapes);
-		if(enemyCollisions != null) {
-			var i1 = 0;
-			while(i1 < enemyCollisions.length) {
-				console.log("Differ: collision detected between player and enemy ");
-				console.log("overlap: " + enemyCollisions[i1].overlap);
-				i1++;
+		var j = 0;
+		while(j < this.enemyDSprite.shapes.length) {
+			var differEnemyCollision = differ_Collision.shapeWithShape(this.playerDSprite.shapes[0],this.enemyDSprite.shapes[j]);
+			if(differEnemyCollision != null) {
+				var a1 = this._enemies[j];
+				var aS;
+				var component1 = this._enemies[j].getComponent("Sprite_0");
+				aS = component1;
+				((function($this) {
+					var $r;
+					var component2 = $this.player.getComponent("Sprite_0");
+					$r = component2;
+					return $r;
+				}(this))).scaleX.animate(0.25,1,0.5,flambe_animation_Ease.backOut);
+				((function($this) {
+					var $r;
+					var component3 = $this.player.getComponent("Sprite_0");
+					$r = component3;
+					return $r;
+				}(this))).scaleY.animate(0.25,1,0.5,flambe_animation_Ease.backOut);
+				aS.alpha.set__(0);
+				this._enemies.splice(j,1);
+				this.enemyDSprite.removeShape(this.enemyDSprite.shapes[j]);
+				if(((function($this) {
+					var $r;
+					var component4 = $this.player.getComponent("GameObject_8");
+					$r = component4;
+					return $r;
+				}(this))).damage(1)) {
+					this.bGameOver = true;
+					((function($this) {
+						var $r;
+						var component5 = $this.player.getComponent("GameObject_8");
+						$r = component5;
+						return $r;
+					}(this))).destroyed.emit();
+					break;
+				}
+				a1.dispose();
 			}
+			j++;
 		}
 	}
 	,__class__: shmup_JellyLevelModel
