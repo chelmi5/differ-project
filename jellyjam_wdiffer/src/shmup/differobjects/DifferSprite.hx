@@ -11,7 +11,7 @@ import shmup.differobjects.ShapeDrawerFlambe;
 
 class DifferSprite extends Sprite
 {
-	private var shapes : Array<Shape>;
+	public var shapes : Array<Shape>;
 	private var shapeColors : Array<Int>;
 	private var drawer : ShapeDrawerFlambe;
 

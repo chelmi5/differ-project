@@ -158,6 +158,23 @@ Type.resolveEnum = function(name) {
 Type.enumIndex = function(e) {
 	return e[1];
 };
+var differ_Collision = function() { };
+$hxClasses["differ.Collision"] = differ_Collision;
+differ_Collision.__name__ = true;
+differ_Collision.shapeWithShape = function(shape1,shape2) {
+	return shape1.test(shape2);
+};
+differ_Collision.shapeWithShapes = function(shape1,shapes) {
+	var results = [];
+	var _g = 0;
+	while(_g < shapes.length) {
+		var other_shape = shapes[_g];
+		++_g;
+		var result = differ_Collision.shapeWithShape(shape1,other_shape);
+		if(result != null) results.push(result);
+	}
+	return results;
+};
 var differ_ShapeDrawer = function() {
 };
 $hxClasses["differ.ShapeDrawer"] = differ_ShapeDrawer;
@@ -219,6 +236,16 @@ differ_ShapeDrawer.prototype = {
 	}
 	,__class__: differ_ShapeDrawer
 };
+var differ_data_ShapeCollision = function() {
+	this.overlap = 0;
+	this.separation = new differ_math_Vector();
+	this.unitVector = new differ_math_Vector();
+};
+$hxClasses["differ.data.ShapeCollision"] = differ_data_ShapeCollision;
+differ_data_ShapeCollision.__name__ = true;
+differ_data_ShapeCollision.prototype = {
+	__class__: differ_data_ShapeCollision
+};
 var differ_math_Matrix = function(a,b,c,d,tx,ty) {
 	if(ty == null) ty = 0;
 	if(tx == null) tx = 0;
@@ -236,10 +263,45 @@ var differ_math_Matrix = function(a,b,c,d,tx,ty) {
 $hxClasses["differ.math.Matrix"] = differ_math_Matrix;
 differ_math_Matrix.__name__ = true;
 differ_math_Matrix.prototype = {
-	makeTranslation: function(_x,_y) {
+	identity: function() {
+		this.a = 1;
+		this.b = 0;
+		this.c = 0;
+		this.d = 1;
+		this.tx = 0;
+		this.ty = 0;
+	}
+	,compose: function(_position,_rotation,_scale) {
+		this.identity();
+		this.scale(_scale.x,_scale.y);
+		this.rotate(_rotation);
+		this.makeTranslation(_position.x,_position.y);
+	}
+	,makeTranslation: function(_x,_y) {
 		this.tx = _x;
 		this.ty = _y;
 		return this;
+	}
+	,rotate: function(angle) {
+		var cos = Math.cos(angle);
+		var sin = Math.sin(angle);
+		var a1 = this.a * cos - this.b * sin;
+		this.b = this.a * sin + this.b * cos;
+		this.a = a1;
+		var c1 = this.c * cos - this.d * sin;
+		this.d = this.c * sin + this.d * cos;
+		this.c = c1;
+		var tx1 = this.tx * cos - this.ty * sin;
+		this.ty = this.tx * sin + this.ty * cos;
+		this.tx = tx1;
+	}
+	,scale: function(x,y) {
+		this.a *= x;
+		this.b *= y;
+		this.c *= x;
+		this.d *= y;
+		this.tx *= x;
+		this.ty *= y;
 	}
 	,__class__: differ_math_Matrix
 };
@@ -263,12 +325,267 @@ differ_math_Vector.prototype = {
 		v.y = this.x * matrix.b + this.y * matrix.d + matrix.ty;
 		return v;
 	}
+	,normalize: function() {
+		if(this.get_length() == 0) {
+			this.x = 1;
+			return this;
+		}
+		var len = this.get_length();
+		this.x /= len;
+		this.y /= len;
+		return this;
+	}
+	,truncate: function(max) {
+		this.set_length(Math.min(max,this.get_length()));
+		return this;
+	}
+	,invert: function() {
+		this.x = -this.x;
+		this.y = -this.y;
+		return this;
+	}
+	,dot: function(other) {
+		return this.x * other.x + this.y * other.y;
+	}
+	,add: function(other) {
+		this.x += other.x;
+		this.y += other.y;
+		return this;
+	}
+	,set_length: function(value) {
+		var ep = 0.00000001;
+		var _angle = Math.atan2(this.y,this.x);
+		this.x = Math.cos(_angle) * value;
+		this.y = Math.sin(_angle) * value;
+		if(Math.abs(this.x) < ep) this.x = 0;
+		if(Math.abs(this.y) < ep) this.y = 0;
+		return value;
+	}
+	,get_length: function() {
+		return Math.sqrt(this.get_lengthsq());
+	}
+	,get_lengthsq: function() {
+		return this.x * this.x + this.y * this.y;
+	}
 	,__class__: differ_math_Vector
+};
+var differ_sat_Common = function() { };
+$hxClasses["differ.sat.Common"] = differ_sat_Common;
+differ_sat_Common.__name__ = true;
+differ_sat_Common.findNormalAxis = function(vertices,index) {
+	var vector1 = vertices[index];
+	var vector2;
+	if(index >= vertices.length - 1) vector2 = vertices[0]; else vector2 = vertices[index + 1];
+	var normalAxis = new differ_math_Vector(-(vector2.y - vector1.y),vector2.x - vector1.x);
+	return normalAxis.normalize();
+};
+var differ_sat_SAT2D = function() { };
+$hxClasses["differ.sat.SAT2D"] = differ_sat_SAT2D;
+differ_sat_SAT2D.__name__ = true;
+differ_sat_SAT2D.testCircleVsPolygon = function(circle,polygon,flip) {
+	if(flip == null) flip = false;
+	var ep = 0.0000000001;
+	var test1;
+	var test2;
+	var test;
+	var min1 = 0;
+	var max1 = 1073741823;
+	var min2 = 0;
+	var max2 = 1073741823;
+	var normalAxis = new differ_math_Vector();
+	var offset;
+	var vectorOffset = new differ_math_Vector();
+	var vectors;
+	var shortestDistance = 1073741823;
+	var collisionData = new differ_data_ShapeCollision();
+	var distMin;
+	var distance = -1;
+	var testDistance = 1073741823;
+	var closestVector = new differ_math_Vector();
+	vectorOffset = new differ_math_Vector(-circle.get_x(),-circle.get_y());
+	var _this = polygon.get_transformedVertices();
+	vectors = _this.slice();
+	if(vectors.length == 2) {
+		var temp = new differ_math_Vector(-(vectors[1].y - vectors[0].y),vectors[1].x - vectors[0].x);
+		temp.truncate(ep);
+		vectors.push(vectors[1].clone().add(temp));
+	}
+	var _g1 = 0;
+	var _g = vectors.length;
+	while(_g1 < _g) {
+		var i = _g1++;
+		distance = (circle.get_x() - vectors[i].x) * (circle.get_x() - vectors[i].x) + (circle.get_y() - vectors[i].y) * (circle.get_y() - vectors[i].y);
+		if(distance < testDistance) {
+			testDistance = distance;
+			closestVector.x = vectors[i].x;
+			closestVector.y = vectors[i].y;
+		}
+	}
+	normalAxis = new differ_math_Vector(closestVector.x - circle.get_x(),closestVector.y - circle.get_y());
+	normalAxis.normalize();
+	min1 = normalAxis.dot(vectors[0]);
+	max1 = min1;
+	var _g11 = 1;
+	var _g2 = vectors.length;
+	while(_g11 < _g2) {
+		var j = _g11++;
+		test = normalAxis.dot(vectors[j]);
+		if(test < min1) min1 = test;
+		if(test > max1) max1 = test;
+	}
+	max2 = circle.get_transformedRadius();
+	min2 -= circle.get_transformedRadius();
+	offset = normalAxis.dot(vectorOffset);
+	min1 += offset;
+	max1 += offset;
+	test1 = min1 - max2;
+	test2 = min2 - max1;
+	if(test1 > 0 || test2 > 0) return null;
+	distMin = -(max2 - min1);
+	if(flip) distMin *= -1;
+	if(Math.abs(distMin) < shortestDistance) {
+		collisionData.unitVector = normalAxis;
+		collisionData.overlap = distMin;
+		shortestDistance = Math.abs(distMin);
+	}
+	var _g12 = 0;
+	var _g3 = vectors.length;
+	while(_g12 < _g3) {
+		var i1 = _g12++;
+		normalAxis = differ_sat_Common.findNormalAxis(vectors,i1);
+		min1 = normalAxis.dot(vectors[0]);
+		max1 = min1;
+		var _g31 = 1;
+		var _g21 = vectors.length;
+		while(_g31 < _g21) {
+			var j1 = _g31++;
+			test = normalAxis.dot(vectors[j1]);
+			if(test < min1) min1 = test;
+			if(test > max1) max1 = test;
+		}
+		max2 = circle.get_transformedRadius();
+		min2 = -circle.get_transformedRadius();
+		offset = normalAxis.dot(vectorOffset);
+		min1 += offset;
+		max1 += offset;
+		test1 = min1 - max2;
+		test2 = min2 - max1;
+		if(test1 > 0 || test2 > 0) return null;
+		distMin = -(max2 - min1);
+		if(flip) distMin *= -1;
+		if(Math.abs(distMin) < shortestDistance) {
+			collisionData.unitVector = normalAxis;
+			collisionData.overlap = distMin;
+			shortestDistance = Math.abs(distMin);
+		}
+	}
+	if(flip) collisionData.shape2 = polygon; else collisionData.shape2 = circle;
+	if(flip) collisionData.shape1 = circle; else collisionData.shape1 = polygon;
+	collisionData.separation = new differ_math_Vector(-collisionData.unitVector.x * collisionData.overlap,-collisionData.unitVector.y * collisionData.overlap);
+	if(flip) collisionData.unitVector.invert();
+	return collisionData;
+};
+differ_sat_SAT2D.testCircleVsCircle = function(circle1,circle2) {
+	var totalRadius = circle1.get_transformedRadius() + circle2.get_transformedRadius();
+	var distancesq = (circle1.get_x() - circle2.get_x()) * (circle1.get_x() - circle2.get_x()) + (circle1.get_y() - circle2.get_y()) * (circle1.get_y() - circle2.get_y());
+	if(distancesq < totalRadius * totalRadius) {
+		var difference = totalRadius - Math.sqrt(distancesq);
+		var collisionData = new differ_data_ShapeCollision();
+		collisionData.shape1 = circle1;
+		collisionData.shape2 = circle2;
+		collisionData.unitVector = new differ_math_Vector(circle1.get_x() - circle2.get_x(),circle1.get_y() - circle2.get_y());
+		collisionData.unitVector.normalize();
+		collisionData.separation = new differ_math_Vector(collisionData.unitVector.x * difference,collisionData.unitVector.y * difference);
+		collisionData.overlap = collisionData.separation.get_length();
+		return collisionData;
+	}
+	return null;
+};
+differ_sat_SAT2D.testPolygonVsPolygon = function(polygon1,polygon2,flip) {
+	if(flip == null) flip = false;
+	var result1 = differ_sat_SAT2D.checkPolygons(polygon1,polygon2,flip);
+	if(result1 == null) return null;
+	var result2 = differ_sat_SAT2D.checkPolygons(polygon2,polygon1,!flip);
+	if(result2 == null) return null;
+	if(Math.abs(result1.overlap) < Math.abs(result2.overlap)) return result1; else return result2;
+};
+differ_sat_SAT2D.checkPolygons = function(polygon1,polygon2,flip) {
+	if(flip == null) flip = false;
+	var ep = 0.0000000001;
+	var test1;
+	var test2;
+	var testNum;
+	var min1;
+	var max1;
+	var min2;
+	var max2;
+	var axis;
+	var offset;
+	var vectors1;
+	var vectors2;
+	var shortestDistance = 1073741823;
+	var collisionData = new differ_data_ShapeCollision();
+	var _this = polygon1.get_transformedVertices();
+	vectors1 = _this.slice();
+	var _this1 = polygon2.get_transformedVertices();
+	vectors2 = _this1.slice();
+	if(vectors1.length == 2) {
+		var temp = new differ_math_Vector(-(vectors1[1].y - vectors1[0].y),vectors1[1].x - vectors1[0].x);
+		temp.truncate(ep);
+		vectors1.push(vectors1[1].add(temp));
+	}
+	if(vectors2.length == 2) {
+		var temp1 = new differ_math_Vector(-(vectors2[1].y - vectors2[0].y),vectors2[1].x - vectors2[0].x);
+		temp1.truncate(ep);
+		vectors2.push(vectors2[1].add(temp1));
+	}
+	var _g1 = 0;
+	var _g = vectors1.length;
+	while(_g1 < _g) {
+		var i = _g1++;
+		axis = differ_sat_Common.findNormalAxis(vectors1,i);
+		min1 = axis.dot(vectors1[0]);
+		max1 = min1;
+		var _g3 = 1;
+		var _g2 = vectors1.length;
+		while(_g3 < _g2) {
+			var j = _g3++;
+			testNum = axis.dot(vectors1[j]);
+			if(testNum < min1) min1 = testNum;
+			if(testNum > max1) max1 = testNum;
+		}
+		min2 = axis.dot(vectors2[0]);
+		max2 = min2;
+		var _g31 = 1;
+		var _g21 = vectors2.length;
+		while(_g31 < _g21) {
+			var j1 = _g31++;
+			testNum = axis.dot(vectors2[j1]);
+			if(testNum < min2) min2 = testNum;
+			if(testNum > max2) max2 = testNum;
+		}
+		test1 = min1 - max2;
+		test2 = min2 - max1;
+		if(test1 > 0 || test2 > 0) return null;
+		var distMin = -(max2 - min1);
+		if(flip) distMin *= -1;
+		if(Math.abs(distMin) < shortestDistance) {
+			collisionData.unitVector = axis;
+			collisionData.overlap = distMin;
+			shortestDistance = Math.abs(distMin);
+		}
+	}
+	if(flip) collisionData.shape1 = polygon2; else collisionData.shape1 = polygon1;
+	if(flip) collisionData.shape2 = polygon1; else collisionData.shape2 = polygon2;
+	collisionData.separation = new differ_math_Vector(-collisionData.unitVector.x * collisionData.overlap,-collisionData.unitVector.y * collisionData.overlap);
+	if(flip) collisionData.unitVector.invert();
+	return collisionData;
 };
 var differ_shapes_Shape = function(_x,_y) {
 	this._transformed = false;
 	this._scaleY = 1;
 	this._scaleX = 1;
+	this._rotation_radians = 0;
 	this._rotation = 0;
 	this.name = "shape";
 	this.tags = new haxe_ds_StringMap();
@@ -283,10 +600,35 @@ var differ_shapes_Shape = function(_x,_y) {
 $hxClasses["differ.shapes.Shape"] = differ_shapes_Shape;
 differ_shapes_Shape.__name__ = true;
 differ_shapes_Shape.prototype = {
-	get_x: function() {
+	test: function(shape) {
+		return null;
+	}
+	,testCircle: function(circle,flip) {
+		if(flip == null) flip = false;
+		return null;
+	}
+	,testPolygon: function(polygon,flip) {
+		if(flip == null) flip = false;
+		return null;
+	}
+	,refresh_transform: function() {
+		this._transformMatrix.compose(this._position,this._rotation_radians,this._scale);
+		this._transformed = false;
+	}
+	,get_x: function() {
+		return this._position.x;
+	}
+	,set_x: function(x) {
+		this._position.x = x;
+		this.refresh_transform();
 		return this._position.x;
 	}
 	,get_y: function() {
+		return this._position.y;
+	}
+	,set_y: function(y) {
+		this._position.y = y;
+		this.refresh_transform();
 		return this._position.y;
 	}
 	,get_scaleX: function() {
@@ -303,7 +645,22 @@ $hxClasses["differ.shapes.Circle"] = differ_shapes_Circle;
 differ_shapes_Circle.__name__ = true;
 differ_shapes_Circle.__super__ = differ_shapes_Shape;
 differ_shapes_Circle.prototype = $extend(differ_shapes_Shape.prototype,{
-	get_transformedRadius: function() {
+	test: function(shape) {
+		return shape.testCircle(this,true);
+	}
+	,testCircle: function(circle,flip) {
+		if(flip == null) flip = false;
+		var c1;
+		if(flip) c1 = circle; else c1 = this;
+		var c2;
+		if(flip) c2 = this; else c2 = circle;
+		return differ_sat_SAT2D.testCircleVsCircle(c1,c2);
+	}
+	,testPolygon: function(polygon,flip) {
+		if(flip == null) flip = false;
+		return differ_sat_SAT2D.testCircleVsPolygon(this,polygon,flip);
+	}
+	,get_transformedRadius: function() {
 		return this._radius * this.get_scaleX();
 	}
 	,__class__: differ_shapes_Circle
@@ -313,7 +670,18 @@ $hxClasses["differ.shapes.Polygon"] = differ_shapes_Polygon;
 differ_shapes_Polygon.__name__ = true;
 differ_shapes_Polygon.__super__ = differ_shapes_Shape;
 differ_shapes_Polygon.prototype = $extend(differ_shapes_Shape.prototype,{
-	get_transformedVertices: function() {
+	test: function(shape) {
+		return shape.testPolygon(this,true);
+	}
+	,testCircle: function(circle,flip) {
+		if(flip == null) flip = false;
+		return differ_sat_SAT2D.testCircleVsPolygon(circle,this,flip);
+	}
+	,testPolygon: function(polygon,flip) {
+		if(flip == null) flip = false;
+		return differ_sat_SAT2D.testPolygonVsPolygon(this,polygon,flip);
+	}
+	,get_transformedVertices: function() {
 		if(!this._transformed) {
 			this._transformedVertices = [];
 			this._transformed = true;
@@ -5906,7 +6274,7 @@ flambe_script_Script.__name__ = true;
 flambe_script_Script.__super__ = flambe_Component;
 flambe_script_Script.prototype = $extend(flambe_Component.prototype,{
 	get_name: function() {
-		return "Script_6";
+		return "Script_7";
 	}
 	,run: function(action) {
 		var handle = new flambe_script__$Script_Handle(action);
@@ -6780,17 +7148,6 @@ shmup_GameObject.prototype = $extend(flambe_Component.prototype,{
 		sprite.texture = normal;
 		sprite.centerAnchor();
 	}
-	,damage: function(amount) {
-		this._ctx.pack.getSound("sounds/Hurt").play();
-		if(amount >= this.health) {
-			this.points = 0;
-			this.health = 0;
-			return true;
-		} else {
-			this.health -= amount;
-			return false;
-		}
-	}
 	,__class__: shmup_GameObject
 });
 var shmup_HomeScene = function() { };
@@ -6839,7 +7196,7 @@ shmup_JellyLevelModel.__name__ = true;
 shmup_JellyLevelModel.__super__ = flambe_Component;
 shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 	get_name: function() {
-		return "JellyLevelModel_7";
+		return "JellyLevelModel_4";
 	}
 	,onAdded: function() {
 		var _g = this;
@@ -6962,7 +7319,7 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 			sprite = component;
 			sprite.setXY(left?flambe_System.get_stage().get_width():0,y * flambe_System.get_stage().get_height());
 			points = 10;
-			coinCircle = new differ_shapes_Circle(left?flambe_System.get_stage().get_width():0,y * flambe_System.get_stage().get_height(),15);
+			coinCircle = new differ_shapes_Circle(left?flambe_System.get_stage().get_width():0,y * flambe_System.get_stage().get_height(),16);
 			var sprite1;
 			var component1 = coin.getComponent("Sprite_0");
 			sprite1 = component1;
@@ -7001,24 +7358,10 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 				sprite.x.set__(pointerX);
 				sprite.y.set__(pointerY);
 			}
+			this.playerDSprite.shapes[0].set_x(sprite.x.get__());
+			this.playerDSprite.shapes[0].set_y(sprite.y.get__());
 		}
-		if(this.playerDSprite != null) {
-			var pdx = pointerX - this.playerDSprite.x.get__();
-			var pdy = pointerY - this.playerDSprite.y.get__();
-			var distance1 = Math.sqrt(pdx * pdx + pdy * pdy);
-			var travel1 = 700 * dt;
-			if(travel1 < distance1) {
-				var _g2 = this.playerDSprite.x;
-				_g2.set__(_g2.get__() + travel1 * pdx / distance1);
-				var _g3 = this.playerDSprite.y;
-				_g3.set__(_g3.get__() + travel1 * pdy / distance1);
-			} else {
-				this.playerDSprite.x.set__(pointerX);
-				this.playerDSprite.y.set__(pointerY);
-			}
-		}
-		this.coinCollision();
-		this.enemyCollision();
+		this.testDifferCollision();
 		var ii = 0;
 		while(ii < this._friendlies.length) {
 			var coin = this._friendlies[ii];
@@ -7032,9 +7375,12 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 				$r = component2;
 				return $r;
 			}(this))).radius;
+			this.coinDSprite.shapes[ii].set_x(sprite1.x.get__());
+			this.coinDSprite.shapes[ii].set_y(sprite1.y.get__());
 			if(sprite1.x.get__() < -radius - 10 || sprite1.x.get__() > flambe_System.get_stage().get_width() + radius + 10 || sprite1.y.get__() < -radius - 10 || sprite1.y.get__() > flambe_System.get_stage().get_height() + radius + 10) {
 				this._friendlies.splice(ii,1);
 				coin.dispose();
+				this.coinDSprite.removeShape(this.coinDSprite.shapes[ii]);
 			} else ++ii;
 		}
 		var ii1 = 0;
@@ -7050,102 +7396,33 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 				$r = component4;
 				return $r;
 			}(this))).radius;
+			this.enemyDSprite.shapes[ii1].set_x(sprite2.x.get__());
+			this.enemyDSprite.shapes[ii1].set_y(sprite2.y.get__());
 			if(sprite2.x.get__() < -radius1 - 10 || sprite2.x.get__() > flambe_System.get_stage().get_width() + radius1 + 10 || sprite2.y.get__() < -radius1 - 10 || sprite2.y.get__() > flambe_System.get_stage().get_height() + radius1 + 10) {
 				this._enemies.splice(ii1,1);
 				enemy.dispose();
+				this.enemyDSprite.removeShape(this.enemyDSprite.shapes[ii1]);
 			} else ++ii1;
 		}
 	}
-	,coinCollision: function() {
-		var i = 0;
-		while(i < this._friendlies.length) {
-			var a = this._friendlies[i];
-			var aS;
-			var component = a.getComponent("Sprite_0");
-			aS = component;
-			var b = this.player;
-			var bS;
-			var component1 = this.player.getComponent("Sprite_0");
-			bS = component1;
-			var maxDist;
-			maxDist = ((function($this) {
-				var $r;
-				var component2 = a.getComponent("GameObject_8");
-				$r = component2;
-				return $r;
-			}(this))).radius + ((function($this) {
-				var $r;
-				var component3 = b.getComponent("GameObject_8");
-				$r = component3;
-				return $r;
-			}(this))).radius;
-			var distSqr = (aS.x.get__() - bS.x.get__()) * (aS.x.get__() - bS.x.get__()) + (aS.y.get__() - bS.y.get__()) * (aS.y.get__() - bS.y.get__());
-			if(distSqr <= maxDist * maxDist) {
-				aS.scaleX.animate(0.25,1,0.5,flambe_animation_Ease.backOut);
-				aS.scaleY.animate(0.25,1,0.5,flambe_animation_Ease.backOut);
-				console.log("coin - player collision");
-				var _g = this.score;
-				_g.set__(_g.get__() + Std["int"](((function($this) {
-					var $r;
-					var component4 = a.getComponent("GameObject_8");
-					$r = component4;
-					return $r;
-				}(this))).points));
-				this._ctx.pack.getSound("sounds/Coin").play();
-				this._friendlies.splice(i,1);
-				a.dispose();
+	,testDifferCollision: function() {
+		var coinCollisions = differ_Collision.shapeWithShapes(this.playerDSprite.shapes[0],this.coinDSprite.shapes);
+		if(coinCollisions != null) {
+			var i = 0;
+			while(i < coinCollisions.length) {
+				console.log("Differ: collision detected between player and coin ");
+				console.log("overlap: " + coinCollisions[i].overlap);
+				i++;
 			}
-			i++;
 		}
-	}
-	,enemyCollision: function() {
-		var i = 0;
-		while(i < this._enemies.length) {
-			var a = this._enemies[i];
-			var aS;
-			var component = a.getComponent("Sprite_0");
-			aS = component;
-			var b = this.player;
-			var bS;
-			var component1 = this.player.getComponent("Sprite_0");
-			bS = component1;
-			var maxDist;
-			maxDist = ((function($this) {
-				var $r;
-				var component2 = a.getComponent("GameObject_8");
-				$r = component2;
-				return $r;
-			}(this))).radius + ((function($this) {
-				var $r;
-				var component3 = b.getComponent("GameObject_8");
-				$r = component3;
-				return $r;
-			}(this))).radius;
-			var distSqr = (aS.x.get__() - bS.x.get__()) * (aS.x.get__() - bS.x.get__()) + (aS.y.get__() - bS.y.get__()) * (aS.y.get__() - bS.y.get__());
-			if(distSqr <= maxDist * maxDist) {
-				aS.scaleX.animate(0.25,1,0.5,flambe_animation_Ease.backOut);
-				aS.scaleY.animate(0.25,1,0.5,flambe_animation_Ease.backOut);
-				console.log("enemy - player collision");
-				this._enemies.splice(i,1);
-				a.dispose();
-				bS.scaleX.animate(0.25,1,0.5,flambe_animation_Ease.backOut);
-				bS.scaleY.animate(0.25,1,0.5,flambe_animation_Ease.backOut);
-				if(((function($this) {
-					var $r;
-					var component4 = $this.player.getComponent("GameObject_8");
-					$r = component4;
-					return $r;
-				}(this))).damage(1)) {
-					((function($this) {
-						var $r;
-						var component5 = $this.player.getComponent("GameObject_8");
-						$r = component5;
-						return $r;
-					}(this))).destroyed.emit();
-					break;
-				}
+		var enemyCollisions = differ_Collision.shapeWithShapes(this.playerDSprite.shapes[0],this.enemyDSprite.shapes);
+		if(enemyCollisions != null) {
+			var i1 = 0;
+			while(i1 < enemyCollisions.length) {
+				console.log("Differ: collision detected between player and enemy ");
+				console.log("overlap: " + enemyCollisions[i1].overlap);
+				i1++;
 			}
-			i++;
 		}
 	}
 	,__class__: shmup_JellyLevelModel
@@ -7278,7 +7555,7 @@ shmup_ai_ChargeAtPlayer.__name__ = true;
 shmup_ai_ChargeAtPlayer.__super__ = flambe_Component;
 shmup_ai_ChargeAtPlayer.prototype = $extend(flambe_Component.prototype,{
 	get_name: function() {
-		return "ChargeAtPlayer_4";
+		return "ChargeAtPlayer_5";
 	}
 	,onUpdate: function(dt) {
 		var sprite;
@@ -7315,7 +7592,7 @@ shmup_ai_MoveStraight.__name__ = true;
 shmup_ai_MoveStraight.__super__ = flambe_Component;
 shmup_ai_MoveStraight.prototype = $extend(flambe_Component.prototype,{
 	get_name: function() {
-		return "MoveStraight_5";
+		return "MoveStraight_6";
 	}
 	,onAdded: function() {
 		var sprite;
@@ -7345,6 +7622,10 @@ shmup_differobjects_DifferSprite.prototype = $extend(flambe_display_Sprite.proto
 	addShape: function(shape,color) {
 		this.shapes.push(shape);
 		this.shapeColors.push(color);
+		return this;
+	}
+	,removeShape: function(shape) {
+		if(!HxOverrides.remove(this.shapes,shape)) console.log("did not successfully remove shape");
 		return this;
 	}
 	,draw: function(g) {
