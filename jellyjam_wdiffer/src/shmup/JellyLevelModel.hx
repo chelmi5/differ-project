@@ -74,8 +74,6 @@ class JellyLevelModel extends Component
 
 	override public function onAdded ()
 	{
-        //_ctx.pack.getSound("sounds/LoopingMusic").loop();
-
 		_worldLayer = new Entity();
 		owner.addChild(_worldLayer);
 
@@ -100,7 +98,7 @@ class JellyLevelModel extends Component
 
         // Create the player
         var jelly = new GameObject(_ctx, "playerjelly", 50, 3, 0);
-        var jellyCircle = new Circle(System.stage.width/2, 0.8*System.stage.height, 50);//(0, 0, 50);//(System.stage.width/2, 0.8*System.stage.height, 50);
+        var jellyCircle = new Circle(System.stage.width/2, 0.8*System.stage.height, 50);
         playerDSprite.addShape(jellyCircle, 0x0000FF);
         
         jelly.destroyed.connect(function () {
@@ -136,7 +134,6 @@ class JellyLevelModel extends Component
         player.get(Sprite).setXY(System.stage.width/2, 0.8*System.stage.height);
 
         System.root.addChild(new Entity().add(playerDSprite));
-
 	}
 
     public function generateEnemies ()
@@ -192,7 +189,7 @@ class JellyLevelModel extends Component
 
                 var sprite = enemy.get(Sprite);
                 enemy.get(GameObject).destroyed.connect(function () {
-                    //explode(sprite.x._, sprite.y._);
+                    //destroyed animation
                 });
 
                 _enemyLayer.addChild(enemy);
@@ -209,7 +206,7 @@ class JellyLevelModel extends Component
         var coralScript = new Script();
         _worldLayer.add(coralScript);
 
-        //add scrolling coral bg
+        //add scrolling coral background
         coralScript.run(new Repeat(new Sequence([
             new Delay(1),
             new CallFunction(function () {
@@ -240,9 +237,8 @@ class JellyLevelModel extends Component
                 var coin = new Entity().add(new GameObject(_ctx, "coin", 50, 1, 10));
 
                 var points = 0;
-                var rand = Math.random(); //save to set point worth. if (rand < 0.3) etc
 
-                    var left = Math.random() < 0.5; //whether coin will appear on left or right of screen
+                    var left = Math.random() < 0.5; //Left or Right of screen
                     var y = Math.random();
                     var top = Math.random() < 0.5;
                     var speed = Math.random()*100 + 150;
@@ -269,9 +265,7 @@ class JellyLevelModel extends Component
             }),
         ])));
 
-        System.root.addChild(new Entity().add(coinDSprite));
-
-        
+        System.root.addChild(new Entity().add(coinDSprite));        
     }
 
 	override public function onUpdate (dt :Float)
@@ -410,77 +404,6 @@ class JellyLevelModel extends Component
             }
 
             j++;
-        }
-    }
-
-    public function coinCollision():Void
-    {
-        var i = 0;
-        
-        while (i < _friendlies.length)
-        {
-            var a = _friendlies[i];
-            var aS = a.get(Sprite);
-            var b = player;
-            var bS = player.get(Sprite);
-
-            var maxDist = a.get(GameObject).radius + b.get(GameObject).radius;
-
-            // classic distance formula
-            var distSqr = (aS.x._ - bS.x._)*(aS.x._ - bS.x._) + (aS.y._ - bS.y._)*(aS.y._ - bS.y._);
-            if( distSqr<=maxDist*maxDist )
-            {
-                aS.scaleX.animate(0.25, 1, 0.5, Ease.backOut);
-                aS.scaleY.animate(0.25, 1, 0.5, Ease.backOut);
-
-                trace("coin - player collision");
-                score._ += Std.int(a.get(GameObject).points);
-                _ctx.pack.getSound("sounds/Coin").play();
-
-                _friendlies.splice(i, 1);
-                a.dispose();
-            }
-
-            i++;
-        }
-        
-    }
-
-    public function enemyCollision() :Void
-    {
-        var i = 0;
-        
-        while (i < _enemies.length)
-        {
-            var a = _enemies[i];
-            var aS = a.get(Sprite);
-            var b = player;
-            var bS = player.get(Sprite);
-
-            var maxDist = a.get(GameObject).radius + b.get(GameObject).radius;
-
-            // classic distance formula
-            var distSqr = (aS.x._ - bS.x._)*(aS.x._ - bS.x._) + (aS.y._ - bS.y._)*(aS.y._ - bS.y._);
-            if( distSqr<=maxDist*maxDist )
-            {
-                aS.scaleX.animate(0.25, 1, 0.5, Ease.backOut);
-                aS.scaleY.animate(0.25, 1, 0.5, Ease.backOut);
-                trace("enemy - player collision");
-
-                _enemies.splice(i, 1);
-                a.dispose();
-
-                bS.scaleX.animate(0.25, 1, 0.5, Ease.backOut);
-                bS.scaleY.animate(0.25, 1, 0.5, Ease.backOut);
-
-                if(player.get(GameObject).damage(1))
-                {
-                    player.get(GameObject).destroyed.emit();
-                    break;
-                }
-            }
-
-            i++;
         }
     }
 }

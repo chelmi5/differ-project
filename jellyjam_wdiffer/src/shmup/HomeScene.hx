@@ -38,25 +38,14 @@ class HomeScene
         var info = new ImageSprite(ctx.pack.getTexture("jelly/info"));
         info.x._ = System.stage.width/3.5;
         info.y._ = System.stage.height/2.7;
-        //scene.addChild(new Entity().add(info));
-        //add back in if I can get the keyboard input working...
 
         var titlejelly = new ImageSprite(ctx.pack.getTexture("jelly/titlejelly"));
         titlejelly.x._ = System.stage.width/11;
         titlejelly.y._ = System.stage.height/2.4;
-        //titlejelly.scaleX.animate(0.25, 1, 0.5, Ease.backOut);
-        //titlejelly.scaleY.animate(0.25, 1, 0.5, Ease.backOut);
 
         scene.addChild(new Entity().add(titlejelly));
 
-        titlejelly.y.behavior = new Sine(System.stage.height/2.7, System.stage.height/2.1);
-
-     
-        //add back in if script starts working...
-        //scene.add(script);
-
-        //try looping with a script?
-        //titlejelly.y.animate(System.stage.height/2.4, System.stage.height/2.6, 1, Ease.sineInOut);        
+        titlejelly.y.behavior = new Sine(System.stage.height/2.7, System.stage.height/2.1);   
 
         var playbutton = new ImageSprite(ctx.pack.getTexture("jelly/playbutton"));
         playbutton.centerAnchor().setXY(System.stage.width/1.35, System.stage.height/1.3);

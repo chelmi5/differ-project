@@ -7309,7 +7309,6 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 		coinScript.run(new flambe_script_Repeat(new flambe_script_Sequence([new flambe_script_Delay(0.8),new flambe_script_CallFunction(function() {
 			var coin = new flambe_Entity().add(new shmup_GameObject(_g._ctx,"coin",50,1,10));
 			var points = 0;
-			var rand = Math.random();
 			var left = Math.random() < 0.5;
 			var y = Math.random();
 			var top = Math.random() < 0.5;
