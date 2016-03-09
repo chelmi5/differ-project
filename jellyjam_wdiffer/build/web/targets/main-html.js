@@ -7361,9 +7361,9 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 			this.playerDSprite.shapes[0].set_x(sprite.x.get__());
 			this.playerDSprite.shapes[0].set_y(sprite.y.get__());
 		}
-		this.testDifferCollision();
+		if(this.bGameOver == false) this.testDifferCollision();
 		var ii = 0;
-		while(ii < this._friendlies.length) {
+		while(ii < this._friendlies.length && this.bGameOver == false) {
 			var coin = this._friendlies[ii];
 			var sprite1;
 			var component1 = coin.getComponent("Sprite_0");
@@ -7384,7 +7384,7 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 			} else ++ii;
 		}
 		var ii1 = 0;
-		while(ii1 < this._enemies.length) {
+		while(ii1 < this._enemies.length && this.bGameOver == false) {
 			var enemy = this._enemies[ii1];
 			var sprite2;
 			var component3 = enemy.getComponent("Sprite_0");
@@ -7455,6 +7455,7 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 					return $r;
 				}(this))).damage(1)) {
 					this.bGameOver = true;
+					this.emptyDifferSprites();
 					((function($this) {
 						var $r;
 						var component5 = $this.player.getComponent("GameObject_8");
@@ -7466,6 +7467,23 @@ shmup_JellyLevelModel.prototype = $extend(flambe_Component.prototype,{
 				a1.dispose();
 			}
 			j++;
+		}
+	}
+	,emptyDifferSprites: function() {
+		var i = 0;
+		while(i < this.coinDSprite.shapes.length) {
+			this.coinDSprite.removeShape(this.coinDSprite.shapes[i]);
+			i++;
+		}
+		var ii = 0;
+		while(ii < this.enemyDSprite.shapes.length) {
+			this.enemyDSprite.removeShape(this.enemyDSprite.shapes[ii]);
+			ii++;
+		}
+		var iii = 0;
+		while(iii < this.playerDSprite.shapes.length) {
+			this.playerDSprite.removeShape(this.playerDSprite.shapes[iii]);
+			iii++;
 		}
 	}
 	,__class__: shmup_JellyLevelModel

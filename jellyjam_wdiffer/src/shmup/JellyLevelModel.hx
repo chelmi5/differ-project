@@ -293,11 +293,14 @@ class JellyLevelModel extends Component
             playerDSprite.shapes[0].y = sprite.y._;
         }
 
-        testDifferCollision();
+        if(bGameOver == false)
+            testDifferCollision();
+
+        
 
         //Remove offscreen coins
         var ii = 0;
-        while (ii < _friendlies.length) {
+        while (ii < _friendlies.length && bGameOver == false) {
             var coin = _friendlies[ii];
             var sprite = coin.get(Sprite);
             var radius = coin.get(GameObject).radius;
@@ -323,7 +326,7 @@ class JellyLevelModel extends Component
 
         // Remove offscreen enemies
         var ii = 0;
-        while (ii < _enemies.length) {
+        while (ii < _enemies.length && bGameOver == false) {
             var enemy = _enemies[ii];
             var sprite = enemy.get(Sprite);
             var radius = enemy.get(GameObject).radius;
@@ -395,6 +398,7 @@ class JellyLevelModel extends Component
                 if(player.get(GameObject).damage(1))
                 {
                     bGameOver = true;
+                    emptyDifferSprites();
                     player.get(GameObject).destroyed.emit();
                     break;
                 }
@@ -404,6 +408,33 @@ class JellyLevelModel extends Component
             }
 
             j++;
+        }
+    }
+
+    public function emptyDifferSprites():Void
+    {
+        var i = 0;
+
+        while(i < coinDSprite.shapes.length)
+        {
+            coinDSprite.removeShape(coinDSprite.shapes[i]);
+            i++;
+        }
+
+        var ii = 0;
+
+        while(ii < enemyDSprite.shapes.length)
+        {
+            enemyDSprite.removeShape(enemyDSprite.shapes[ii]);
+            ii++;
+        }
+
+        var iii = 0;
+
+        while(iii < playerDSprite.shapes.length)
+        {
+            playerDSprite.removeShape(playerDSprite.shapes[iii]);
+            iii++;
         }
     }
 }
