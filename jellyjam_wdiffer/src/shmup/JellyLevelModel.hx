@@ -411,7 +411,7 @@ class JellyLevelModel extends Component
         }
     }
 
-    public function emptyDifferSprites():Void
+    public function emptyDifferSprites():Void //Not quite working...
     {
         var i = 0;
 
